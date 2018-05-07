@@ -1,0 +1,5 @@
+package hbase;
+
+public class global {
+public static final long count=0;
+}

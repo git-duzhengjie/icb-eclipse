@@ -1,0 +1,65 @@
+package hbase;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.util.Bytes;
+
+public class MyThread extends Thread{
+	private Connection connection;
+	private String tableName;
+	private String rowkey;
+	private String colFamily;
+	private String col;
+	private String val;
+	private int threadNum;
+	private int batchNum;
+	private long totalNum;
+	private int targetId;
+	
+	public MyThread(Connection connection, String tableName, String rowkey, String colFamily, String col, String val, int threadNum, int batchNum, long totalNum, int targetId) {		
+		this.connection = connection;
+		this.tableName = tableName;
+		this.rowkey = rowkey;
+		this.colFamily = colFamily;
+		this.col = col;
+		this.val = val;
+		this.threadNum = threadNum;
+		this.batchNum = batchNum;
+		this.totalNum = totalNum;
+		this.targetId = targetId;
+	}
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		System.out.println("run " + targetId + "-----");
+		try {
+			Table table = connection.getTable(TableName.valueOf(tableName));
+	        long start = totalNum / threadNum * targetId;
+	        long putNum = new Long(totalNum / threadNum/ batchNum).intValue() + 1;
+	        for(int j=0;j<putNum;j++) {
+		        List<Put> puts = new ArrayList<Put>();
+		        if(j + 1 == putNum)
+		        {
+		        	batchNum = new Long(totalNum / threadNum - (batchNum * j)).intValue();
+		        }
+		        for(int i=0;i<batchNum;i++) {
+		        	Put put = new Put(Bytes.toBytes(rowkey + "%" + String.format("%s", i + start)));
+		        	put.addColumn(Bytes.toBytes(colFamily), Bytes.toBytes(col), Bytes.toBytes(val + "%" + String.format("%s", i + start)));
+		        	puts.add(put);
+		        }
+		        table.put(puts);
+	        }
+	        table.close();
+	        System.out.println("over " + targetId + "-----");
+		}catch(IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+}
